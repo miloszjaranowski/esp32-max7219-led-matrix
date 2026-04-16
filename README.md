@@ -43,7 +43,7 @@ Sekrety (WiFi i endpointy) ustawiaj w lokalnym pliku `secrets.h` (ignorowanym pr
   - `WIFI_SSID`, `WIFI_PASSWORD`, `WIFI_IS_HIDDEN`
   - `SERVER_MESSAGE_1_URL`, `SERVER_MESSAGE_2_URL`, `SERVER_MESSAGE_3_URL`
 
-Pozostale ustawienia nadal konfigurujesz w `miecz_sw.ino`:
+Pozostale ustawienia nadal konfigurujesz w `esp32_led_matrix.ino`:
 - `ntpServer`, `gmtOffset_sec`, `daylightOffset_sec`
 - `classSchedule` (harmonogram zajec)
 
@@ -62,7 +62,7 @@ Przy bledzie HTTP wyswietlany jest placeholder `--`.
 
 ### Struktura repo
 
-- `miecz_sw.ino` - glowny kod programu
+- `esp32_led_matrix.ino` - glowny kod programu
 - `secrets.example.h` - przykladowa konfiguracja sekretow
 - `.gitignore` - ignoruje lokalny plik `secrets.h`
 
@@ -109,7 +109,7 @@ Configure secrets (WiFi and endpoints) in a local `secrets.h` file (ignored by G
   - `WIFI_SSID`, `WIFI_PASSWORD`, `WIFI_IS_HIDDEN`
   - `SERVER_MESSAGE_1_URL`, `SERVER_MESSAGE_2_URL`, `SERVER_MESSAGE_3_URL`
 
-The remaining settings stay in `miecz_sw.ino`:
+The remaining settings stay in `esp32_led_matrix.ino`:
 - `ntpServer`, `gmtOffset_sec`, `daylightOffset_sec`
 - `classSchedule` (class timetable)
 
@@ -129,6 +129,6 @@ If an HTTP request fails, the display falls back to `--`.
 
 ### Repository structure
 
-- `miecz_sw.ino` - main firmware file
+- `esp32_led_matrix.ino` - main firmware file
 - `secrets.example.h` - sample secrets configuration
 - `.gitignore` - ignores local `secrets.h`
