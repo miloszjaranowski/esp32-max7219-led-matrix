@@ -2,6 +2,8 @@
 
 ![Demo](demo.gif)
 
+Tablica LED sterowana przez ESP32-C5, wyswietlajaca czas, date i komunikaty z sieci. / ESP32-C5-powered LED matrix displaying time, date and network messages.
+
 ## PL
 
 Projekt tablicy LED opartej o ESP32 i lancuch 16 modulow MAX7219 (FC16), wyswietlajacej czas, date, dzien tygodnia oraz komunikaty pobierane z HTTP.
@@ -29,12 +31,12 @@ Projekt tablicy LED opartej o ESP32 i lancuch 16 modulow MAX7219 (FC16), wyswiet
 
 ### Wymagane biblioteki
 
+Instalowane przez Arduino IDE Library Manager:
 - MD_Parola
 - MD_MAX72xx
-- WiFi (ESP32)
-- esp_wifi
-- HTTPClient
-- time
+
+Wbudowane w rdzen ESP32 (nie wymagaja instalacji):
+- WiFi, esp_wifi, HTTPClient, time
 
 ### Konfiguracja
 
@@ -52,15 +54,10 @@ Pozostale ustawienia nadal konfigurujesz w `esp32_led_matrix.ino`:
 ### Szybki start
 
 1. Otworz projekt w Arduino IDE.
-2. Zainstaluj biblioteki.
-3. Wybierz plytke ESP32 i port COM.
+2. Zainstaluj biblioteki: MD_Parola, MD_MAX72xx.
+3. Wybierz plytke: **ESP32C5 Dev Module** i odpowiedni port COM.
 4. Utworz `secrets.h` na podstawie `secrets.example.h` i wpisz lokalne dane.
 5. Wgraj kod i uruchom Serial Monitor (115200).
-
-### Endpointy
-- Do konfiguracji
-
-Przy bledzie HTTP wyswietlany jest placeholder `--`.
 
 ### Ograniczenia
 
@@ -78,9 +75,7 @@ Przy bledzie HTTP wyswietlany jest placeholder `--`.
 ### Struktura repo
 
 - `esp32_led_matrix.ino` - glowny kod programu
-- `secrets.example.h` - przykladowa konfiguracja sekretow
-- `.gitignore` - ignoruje lokalny plik `secrets.h`
-- `LICENSE` - licencja MIT
+- `secrets.example.h` - przykladowy plik konfiguracji (skopiuj jako `secrets.h` i uzupelnij)
 
 ## EN
 
@@ -109,12 +104,12 @@ An ESP32-based LED display project using a 16-module MAX7219 (FC16) chain to sho
 
 ### Required libraries
 
+Install via Arduino IDE Library Manager:
 - MD_Parola
 - MD_MAX72xx
-- WiFi (ESP32)
-- esp_wifi
-- HTTPClient
-- time
+
+Built into the ESP32 core (no install needed):
+- WiFi, esp_wifi, HTTPClient, time
 
 ### Configuration
 
@@ -132,16 +127,10 @@ The remaining settings stay in `esp32_led_matrix.ino`:
 ### Quick start
 
 1. Open the project in Arduino IDE.
-2. Install required libraries.
-3. Select your ESP32 board and COM port.
+2. Install libraries: MD_Parola, MD_MAX72xx.
+3. Select board: **ESP32C5 Dev Module** and the correct COM port.
 4. Create `secrets.h` from `secrets.example.h` and enter local values.
 5. Upload and open Serial Monitor (115200).
-
-### Endpoints
-
-- To be configured
-
-If an HTTP request fails, the display falls back to `--`.
 
 ### Known limitations
 
@@ -159,6 +148,4 @@ If an HTTP request fails, the display falls back to `--`.
 ### Repository structure
 
 - `esp32_led_matrix.ino` - main firmware file
-- `secrets.example.h` - sample secrets configuration
-- `.gitignore` - ignores local `secrets.h`
-- `LICENSE` - MIT license
+- `secrets.example.h` - sample configuration (copy as `secrets.h` and fill in your values)
