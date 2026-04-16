@@ -60,11 +60,25 @@ Pozostale ustawienia nadal konfigurujesz w `esp32_led_matrix.ino`:
 
 Przy bledzie HTTP wyswietlany jest placeholder `--`.
 
+### Ograniczenia
+
+- Logika polaczenia preferuje i pilnuje pasma 5 GHz.
+- Jesli AP dziala tylko na 2.4 GHz, urzadzenie moze nie utrzymac polaczenia.
+- Projekt zaklada stale polaczenie z internetem (NTP + HTTP).
+
+### Rozwiazywanie problemow
+
+- Brak WiFi: sprawdz `WIFI_SSID`, `WIFI_PASSWORD` i `WIFI_IS_HIDDEN` w `secrets.h`.
+- Brak czasu: sprawdz dostep do internetu i ustawienia `ntpServer`/strefy czasowej.
+- Brak komunikatow: sprawdz endpointy HTTP i odpowiedz serwera (czy zwraca tekst).
+- Bledne wyswietlanie: potwierdz typ modulow (`FC16_HW`) i mapowanie pinow.
+
 ### Struktura repo
 
 - `esp32_led_matrix.ino` - glowny kod programu
 - `secrets.example.h` - przykladowa konfiguracja sekretow
 - `.gitignore` - ignoruje lokalny plik `secrets.h`
+- `LICENSE` - licencja MIT
 
 ## EN
 
@@ -127,8 +141,22 @@ The remaining settings stay in `esp32_led_matrix.ino`:
 
 If an HTTP request fails, the display falls back to `--`.
 
+### Known limitations
+
+- Connection logic prefers and enforces 5 GHz operation.
+- If your AP is only 2.4 GHz, the device may fail to keep a connection.
+- The project assumes internet availability (NTP + HTTP).
+
+### Troubleshooting
+
+- No WiFi: verify `WIFI_SSID`, `WIFI_PASSWORD`, and `WIFI_IS_HIDDEN` in `secrets.h`.
+- No time sync: verify internet access and `ntpServer`/timezone settings.
+- No messages: verify HTTP endpoints and server response payload.
+- Display issues: confirm module type (`FC16_HW`) and pin mapping.
+
 ### Repository structure
 
 - `esp32_led_matrix.ino` - main firmware file
 - `secrets.example.h` - sample secrets configuration
 - `.gitignore` - ignores local `secrets.h`
+- `LICENSE` - MIT license
