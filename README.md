@@ -1,5 +1,7 @@
 # esp32-max7219-led-matrix
 
+![Demo](demo.gif)
+
 ## PL
 
 Projekt tablicy LED opartej o ESP32 i lancuch 16 modulow MAX7219 (FC16), wyswietlajacej czas, date, dzien tygodnia oraz komunikaty pobierane z HTTP.
