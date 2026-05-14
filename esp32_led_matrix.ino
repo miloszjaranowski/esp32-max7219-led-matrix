@@ -3,37 +3,12 @@
 #include <MD_MAX72xx.h>
 #include <WiFi.h>
 #include <esp_wifi.h>
+#include <esp_task_wdt.h>
 #include "time.h"
 #include <stdlib.h>
 #include <HTTPClient.h>
 
-#if __has_include("secrets.h")
-#include "secrets.h"
-#endif
-
-#ifndef WIFI_SSID
-#define WIFI_SSID "your_ssid"
-#endif
-
-#ifndef WIFI_PASSWORD
-#define WIFI_PASSWORD "your_password"
-#endif
-
-#ifndef WIFI_IS_HIDDEN
-#define WIFI_IS_HIDDEN true
-#endif
-
-#ifndef SERVER_MESSAGE_1_URL
-#define SERVER_MESSAGE_1_URL "your_server_endpoint_1"
-#endif
-
-#ifndef SERVER_MESSAGE_2_URL
-#define SERVER_MESSAGE_2_URL "your_server_endpoint_2"
-#endif
-
-#ifndef SERVER_MESSAGE_3_URL
-#define SERVER_MESSAGE_3_URL "your_server_endpoint_3"
-#endif
+RTC_DATA_ATTR int lastScheduledRestartStamp = -1;
 
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
 #define MAX_DEVICES 16
@@ -41,14 +16,40 @@
 #define CLK_PIN 9
 #define CS_PIN 10
 
-const char *ssid = WIFI_SSID;
-const char *password = WIFI_PASSWORD;
-const bool isHiddenNetwork = WIFI_IS_HIDDEN;
+const char *ssid = "PP_527_LAB";
+const char *password = "IbLETEsAutis";
+const bool isHiddenNetwork = true;
 const unsigned long reconnectRetryIntervalMs = 3000;
 const unsigned long clockUpdateIntervalMs = 1000;
+const bool scheduledRestartEnabled = true;
+const uint8_t scheduledRestartLeadMinutes = 10;
+const uint16_t httpTimeoutMs = 5000;
+const uint16_t watchdogTimeoutSec = 30;
 
 unsigned long lastBeginAtMs = 0;
 const unsigned long connectAttemptWindowMs = 16000;
+bool watchdogInitialized = false;
+
+void feedWatchdog()
+{
+  if (!watchdogInitialized)
+    return;
+
+  esp_task_wdt_reset();
+}
+
+void initWatchdog()
+{
+  esp_task_wdt_config_t watchdogConfig = {
+      .timeout_ms = watchdogTimeoutSec * 1000,
+      .idle_core_mask = 0,
+      .trigger_panic = true,
+  };
+  esp_task_wdt_init(&watchdogConfig);
+  esp_task_wdt_add(NULL);
+  watchdogInitialized = true;
+  feedWatchdog();
+}
 
 bool canStartNewConnectAttempt()
 {
@@ -81,6 +82,7 @@ bool connectOnly5GHz()
     unsigned long start = millis();
     while (WiFi.status() != WL_CONNECTED && millis() - start < 15000)
     {
+      feedWatchdog();
       delay(500);
       Serial.print(".");
     }
@@ -148,6 +150,7 @@ bool connectOnly5GHz()
   unsigned long start = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - start < 15000)
   {
+    feedWatchdog();
     delay(500);
     Serial.print(".");
   }
@@ -156,9 +159,9 @@ bool connectOnly5GHz()
   return (WiFi.status() == WL_CONNECTED && WiFi.channel() > 14);
 }
 
-const char *serverMessage1Add = SERVER_MESSAGE_1_URL;
-const char *serverMessage2Add = SERVER_MESSAGE_2_URL;
-const char *serverMessage3Add = SERVER_MESSAGE_3_URL;
+const char *serverMessage1Add = "https://allexims.com/GabMatrix/Gab527KN/message1";
+const char *serverMessage2Add = "https://allexims.com/GabMatrix/Gab527KN/message2";
+const char *serverMessage3Add = "https://allexims.com/GabMatrix/Gab527KN/message3";
 
 String message1, message2, message3;
 uint8_t message1Time = 3, message2Time = 3, message3Time = 3;
@@ -206,6 +209,50 @@ bool isDuringClasses()
     }
   }
   return false;
+}
+
+bool shouldScheduleRestartNow(const struct tm &timeinfo, int &restartStamp)
+{
+  if (!scheduledRestartEnabled)
+    return false;
+
+  if (timeinfo.tm_wday == 0 || timeinfo.tm_wday == 6)
+    return false;
+
+  int currentMinuteOfDay = (timeinfo.tm_hour * 60) + timeinfo.tm_min;
+
+  for (uint8_t i = 0; i < classScheduleCount; i++)
+  {
+    int classEndMinuteOfDay = (classSchedule[i][2] * 60) + classSchedule[i][3];
+    int restartMinuteOfDay = classEndMinuteOfDay - scheduledRestartLeadMinutes;
+
+    if (currentMinuteOfDay != restartMinuteOfDay)
+      continue;
+
+    restartStamp = (timeinfo.tm_yday * 100) + i;
+    return true;
+  }
+
+  return false;
+}
+
+void handleScheduledRestart()
+{
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo))
+    return;
+
+  int restartStamp = -1;
+  if (!shouldScheduleRestartNow(timeinfo, restartStamp))
+    return;
+
+  if (restartStamp == lastScheduledRestartStamp)
+    return;
+
+  lastScheduledRestartStamp = restartStamp;
+  Serial.println("Scheduled safety restart.");
+  delay(200);
+  ESP.restart();
 }
 
 void printLocalTime()
@@ -371,8 +418,41 @@ unsigned long previousMillis = 0;
 const long interval = 60000;
 unsigned long lastReconnectTryMs = 0;
 unsigned long lastClockUpdateMs = 0;
+bool noWifiIndicatorVisible = false;
+bool networkServicesInitialized = false;
 
 String httpGETRequest(const char *serverName);
+
+bool isConnectedTo5GHz()
+{
+  return WiFi.status() == WL_CONNECTED && WiFi.channel() > 14;
+}
+
+void showNoWifiIndicator()
+{
+  if (noWifiIndicatorVisible)
+    return;
+
+  Display.displaySuspend(true);
+  Display.displayClear();
+
+  MD_MAX72XX *matrix = Display.getGraphicObject();
+  matrix->clear();
+  matrix->setColumn((MAX_DEVICES * 8) - 1, 0xFF);
+
+  noWifiIndicatorVisible = true;
+}
+
+void hideNoWifiIndicator()
+{
+  if (!noWifiIndicatorVisible)
+    return;
+
+  Display.displayClear();
+  Display.displaySuspend(false);
+  Display.displayReset();
+  noWifiIndicatorVisible = false;
+}
 
 void copyToBuffer(const String &src, char *dst, size_t dstSize)
 {
@@ -399,6 +479,13 @@ void refreshMessagesFromServer()
 void setup()
 {
   Serial.begin(115200);
+  initWatchdog();
+
+  Display.begin();
+  Display.setSpriteData(pacman2, W_PMAN2, F_PMAN2, pacman2, W_PMAN2, F_PMAN2);
+  Display.setIntensity(4);
+  Display.displayClear();
+
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(false);
   WiFi.persistent(false);
@@ -408,23 +495,22 @@ void setup()
 #endif
 
   Serial.printf("Connecting to %s ", ssid);
-  while (!connectOnly5GHz())
+
+  if (!connectOnly5GHz())
   {
-    Serial.println("Retrying 5 GHz connection in 3 seconds...");
-    delay(3000);
+    Serial.println("Initial 5 GHz connection failed. Offline indicator enabled.");
+    showNoWifiIndicator();
   }
-  Serial.println(" CONNECTED");
-  Serial.println(WiFi.localIP());
+  else
+  {
+    Serial.println(" CONNECTED");
+    Serial.println(WiFi.localIP());
 
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  printLocalTime();
-
-  refreshMessagesFromServer();
-
-  Display.begin();
-  Display.setSpriteData(pacman2, W_PMAN2, F_PMAN2, pacman2, W_PMAN2, F_PMAN2);
-  Display.setIntensity(4);
-  Display.displayClear();
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    printLocalTime();
+    refreshMessagesFromServer();
+    networkServicesInitialized = true;
+  }
 
   for (uint8_t i = 0; i < ARRAY_SIZE(animList); i++)
   {
@@ -440,20 +526,40 @@ void loop()
   static unsigned long switchTimer = 0;
   unsigned long currentMillis = millis();
 
-  if (currentMillis - lastClockUpdateMs >= clockUpdateIntervalMs)
-  {
-    printLocalTime();
-    lastClockUpdateMs = currentMillis;
-  }
+  feedWatchdog();
+  handleScheduledRestart();
 
-  if (WiFi.status() != WL_CONNECTED || WiFi.channel() <= 14)
+  if (!isConnectedTo5GHz())
   {
+    networkServicesInitialized = false;
+    showNoWifiIndicator();
+
     if (currentMillis - lastReconnectTryMs >= reconnectRetryIntervalMs)
     {
       Serial.println("WiFi not on 5 GHz, reconnecting...");
       connectOnly5GHz();
       lastReconnectTryMs = currentMillis;
     }
+
+    return;
+  }
+
+  hideNoWifiIndicator();
+
+  if (!networkServicesInitialized)
+  {
+    Serial.println("WiFi restored. Refreshing time and messages.");
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    printLocalTime();
+    refreshMessagesFromServer();
+    previousMillis = currentMillis;
+    networkServicesInitialized = true;
+  }
+
+  if (currentMillis - lastClockUpdateMs >= clockUpdateIntervalMs)
+  {
+    printLocalTime();
+    lastClockUpdateMs = currentMillis;
   }
 
   if ((currentMillis - previousMillis >= interval) && !(currentHour >= 20 || currentHour < 7))
@@ -515,6 +621,8 @@ void loop()
 String httpGETRequest(const char *serverName)
 {
   HTTPClient http;
+  http.setConnectTimeout(httpTimeoutMs);
+  http.setTimeout(httpTimeoutMs);
   http.begin(serverName);
   int httpResponseCode = http.GET();
   String payload = "--";
